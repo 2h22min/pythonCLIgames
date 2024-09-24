@@ -24,3 +24,19 @@ The same package with the addition of:
     - Player vs. Computer
     - Player vs. player
 + The **Save Feature**, allowing players to interrupt and quit the program using `Ctrl + C` (saving the game state) at any point, and optionally resume a previous game the next time it's launched.
+
+# Usage
+## Setup
+To run this project locally:
+
+1. Clone the repository\
+`git clone https://github.com/2h22min/pythonCLIgames.git`
+
+1. Navigate to a games directory in the repo\
+`cd pythonCLIgames/games`
+
+1. Run main script to launch the game menu:\
+`python main.py`
+
+## Requirements
+* Python 3.x
