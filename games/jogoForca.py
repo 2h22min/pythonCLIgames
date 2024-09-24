@@ -5,10 +5,9 @@ Faça o algoritmo e implemente o programa do Jogo da forca
 
 import json
 
+savename = 'saves/save_jogoForca.json'
 
-def jogoForca(palavra = 'palavra'):
-    savename = 'saves/save_jogoForca.json'
-    
+def jogoForca(palavra = 'palavra', resume = None):
     def desenharEnforcado():
         partes = {0: """
       _______
@@ -113,35 +112,23 @@ def jogoForca(palavra = 'palavra'):
 
         
     try:
-        novojogo = False
-        try:
-            with open(savename,'x') as jsonfile:
-                jsonfile.write('{}')
-            novojogo = True
+        if resume is not None: # Saved game will be resumed
+            data = resume
 
-        except FileExistsError:
-            with open(savename) as jsonGuardado:
-                data = json.load(jsonGuardado)
-                if len(data) > 0:
-                    if input('Escreva "S" se pretende continuar o jogo anterior ou enter para iniciar um novo.\n').lower() == 's':
-                        adivinhar = data['adivinhar']
-                        display = data['display']
-                        erros = data['erros']
-                    else:
-                        novojogo = True
+            adivinhar = data['adivinhar']
+            display = data['display']
+            erros = data['erros']
+
+        else:
+            adivinhar = list(palavra.upper())
+            display = []
+            for char in adivinhar:
+                if char in 'abcdefghijklmnopqrstuvwxyz'.upper():
+                    display.append('_')
                 else:
-                    novojogo = True
-        finally:          
-            if novojogo:
-                adivinhar = list(palavra.upper())
-                display = []
-                for char in adivinhar:
-                    if char in 'abcdefghijklmnopqrstuvwxyz'.upper():
-                        display.append('_')
-                    else:
-                        display.append(char)
-                erros = []
-                
+                    display.append(char)
+            erros = []
+            
         while display != adivinhar and len(erros) < 7:
             mostrarEstado()
             verificar( input('Introduza letra: ').upper())
@@ -163,6 +150,7 @@ def jogoForca(palavra = 'palavra'):
             }
             with open(savename, "w") as json_save:
                 json.dump(save_dict, json_save)
+            
         except UnboundLocalError:
             pass
 

@@ -5,10 +5,9 @@ Implemente o algoritmo e implemente o programa do jogo 4 em linha
 
 import json
 
+savename = 'saves/save_jogo4linha.json'
 
-def jogo4linha():
-    savename = 'saves/save_jogo4linha.json'
-
+def jogo4linha(resume = None):
     def mostrar_tabuleiro():
         print('\n  1   2   3   4   5   ')
         for row in tabuleiro:
@@ -51,35 +50,24 @@ def jogo4linha():
         return False
 
     try:
-        novojogo = False
-        try:
-            with open(savename,'x') as jsonfile:
-                jsonfile.write('{}')
-            novojogo = True
+        if resume is not None: # Saved game will be resumed
+            data = resume
 
-        except FileExistsError:
-            with open(savename) as jsonGuardado:
-                data = json.load(jsonGuardado)
-                if len(data) > 0:
-                    if input('Escreva "S" se pretende continuar o jogo anterior ou enter para iniciar um novo.\n').lower() == 's':
-                        jogador1 = data['jogadores'][0]
-                        jogador2 = data['jogadores'][1]
-                        tabuleiro = data['tabuleiro']
-                    else:
-                        novojogo = True
-                else:
-                    novojogo = True
-        finally:
-            if novojogo:
-                jogador1 = input('Nome 1: ')
-                jogador2 = input('Nome 2: ')
-                tabuleiro = [[' ', ' ', ' ', ' ', ' '],
-                            [' ', ' ', ' ', ' ', ' '],
-                            [' ', ' ', ' ', ' ', ' '],
-                            [' ', ' ', ' ', ' ', ' '],
-                            [' ', ' ', ' ', ' ', ' ']]
-            casas = sum(row.count(' ') for row in tabuleiro)
-            acabou = False
+            jogador1 = data['jogadores'][0]
+            jogador2 = data['jogadores'][1]
+            tabuleiro = data['tabuleiro']
+
+        else:
+            jogador1 = input('Nome 1: ')
+            jogador2 = input('Nome 2: ')
+            tabuleiro = [[' ', ' ', ' ', ' ', ' '],
+                        [' ', ' ', ' ', ' ', ' '],
+                        [' ', ' ', ' ', ' ', ' '],
+                        [' ', ' ', ' ', ' ', ' '],
+                        [' ', ' ', ' ', ' ', ' ']]
+
+        casas = sum(row.count(' ') for row in tabuleiro)
+        acabou = False
 
         while casas > 0 and not acabou:
             mostrar_tabuleiro()

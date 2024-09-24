@@ -10,8 +10,9 @@ import json
 import random
 import time
 
+savename = "saves/save_jogoBatalhaNaval_JcC.json"
 
-def jogoBatalhaNaval():
+def jogoBatalhaNaval(vsComputador = True, resume = None):
     class board():
         def __init__(self):
             self.rows = []
@@ -143,9 +144,7 @@ def jogoBatalhaNaval():
 
                 return [row, col]
 
-            except ValueError:
-                inp = input('Error. Tente novamente. ').lower()
-            except IndexError:
+            except (ValueError, IndexError):
                 inp = input('Error. Tente novamente. ').lower()
 
 
@@ -287,116 +286,94 @@ def jogoBatalhaNaval():
         return hit
 
     try:
-        print('Escolha modo de jogo:')
-        while True:
-            match input(' a. Jogador vs Computador\n b. Jogador vs Jogador\n').lower():
-                case 'a':
-                    vsComputador = True
-                    savename = "saves/save_jogoBatalhaNaval_JcC.json"
-                    break
-
-                case 'b':
-                    vsComputador = False
-                    savename = "saves/save_jogoBatalhaNaval_JcJ.json"
-                    break
-
         novojogo = False
-        try:
-            with open(savename,'x') as jsonfile:
-                jsonfile.write('{}')
+        if resume is not None: # Saved game will be resumed
+            data = resume
+
+            jAdict = data["jog A"]
+            sboard_A = board()
+            sboard_A.rows = jAdict['shipsboard']
+            aboard_A = board()
+            aboard_A.rows = jAdict['attackboard']
+            jogA = player( jAdict['nome'], sboard_A, aboard_A, not jAdict['bot'])
+            jogA.ships = jAdict['ships']
+            jogA.turn = jAdict['turn']
+            jogA.won = jAdict['won']
+
+            jBdict = data["jog B"]
+            sboard_B = board()
+            sboard_B.rows = jBdict['shipsboard']
+            aboard_B = board()
+            aboard_B.rows = jBdict['attackboard']
+            jogB = player( jBdict['nome'], sboard_B, aboard_B, not jBdict['bot'])
+            jogB.ships = jBdict['ships']
+            jogB.turn = jBdict['turn']
+            jogB.won = jBdict['won']
+
+            if vsComputador:
+                jogB.tracking = jBdict['tracking']
+                jogB.times_dir_switched = jBdict['times_dir_switched']
+            
+            vez = data['vez']
+
+        else:
             novojogo = True
 
-        except FileExistsError:
-            with open(savename) as jsonGuardado:
-                data = json.load(jsonGuardado)
-                if len(data) > 0:
-                    if input('Escreva "S" se pretende continuar o jogo anterior ou enter para iniciar um novo.\n').lower() == 's':
-                        jAdict = data["jog A"]
-                        sboard_A = board()
-                        sboard_A.rows = jAdict['shipsboard']
-                        aboard_A = board()
-                        aboard_A.rows = jAdict['attackboard']
-                        jogA = player( jAdict['nome'], sboard_A, aboard_A, not jAdict['bot'])
-                        jogA.ships = jAdict['ships']
-                        jogA.turn = jAdict['turn']
-                        jogA.won = jAdict['won']
+            sboard_A = board()
+            aboard_A = board()
+            sboard_B = board()
+            aboard_B = board()
 
-                        jBdict = data["jog B"]
-                        sboard_B = board()
-                        sboard_B.rows = jBdict['shipsboard']
-                        aboard_B = board()
-                        aboard_B.rows = jBdict['attackboard']
-                        jogB = player( jBdict['nome'], sboard_B, aboard_B, not jBdict['bot'])
-                        jogB.ships = jBdict['ships']
-                        jogB.turn = jBdict['turn']
-                        jogB.won = jBdict['won']
-                        if vsComputador:
-                            jogB.tracking = jBdict['tracking']
-                            jogB.times_dir_switched = jBdict['times_dir_switched']
-                        
-                        vez = data['vez']
+            possible_position = False
 
+            if vsComputador:
+                jogA = player('O utilizador', sboard_A, aboard_A)
+                jogB = player('O computador', sboard_B, aboard_B, False)
+                jogB.tracking = []
+                jogB.times_dir_switched = []
+
+                # bot ships positioning
+                for ship in jogB.ships:
+                    while not possible_position:
+                        ship['A'] = [random.randrange(12 - ship['squares']), random.randrange(12 - ship['squares'])] 
+                        place(ship, sboard_B, False)
+                    possible_position = False
+
+            else:                    
+                jogA = player( input('Nome do jogador 1: '), sboard_A, aboard_A)
+                while True:
+                    segundoJNome = input('Nome do jogador 2: ')
+                    if segundoJNome != jogA.nome:
+                        jogB = player(segundoJNome, sboard_B, aboard_B)
+                        break
                     else:
-                        novojogo = True
-                else:
-                    novojogo = True
-        finally:          
-            if novojogo:
-                sboard_A = board()
-                aboard_A = board()
-                sboard_B = board()
-                aboard_B = board()
-
+                        print('Os jogadores devem ter nomes diferentes.')
+                    
+            # first player ships positioning
+            for ship in range(5):
+                while not possible_position:
+                    sboard_A.show()
+                    b = jogA.ships[ship]
+                    b['A'] = valid_pos_input( input( f'{jogA.nome}, onde gostaria de colocar \
+o seu {b['nome']} ({b['squares']} quadrados)? Escreva uma das suas posições finais como "A1"\n').lower())
+                    place(b, sboard_A)
                 possible_position = False
-
-                if vsComputador:
-                    jogA = player('O utilizador', sboard_A, aboard_A)
-                    jogB = player('O computador', sboard_B, aboard_B, False)
-                    jogB.tracking = []
-                    jogB.times_dir_switched = []
-
-                    # bot ships positioning
-                    for ship in jogB.ships:
-                        while not possible_position:
-                            ship['A'] = [random.randrange(12 - ship['squares']), random.randrange(12 - ship['squares'])] 
-                            place(ship, sboard_B, False)
-                        possible_position = False
-
-                else:                    
-                    jogA = player( input('Nome do jogador 1: '), sboard_A, aboard_A)
-                    while True:
-                        segundoJNome = input('Nome do jogador 2: ')
-                        if segundoJNome != jogA.nome:
-                            jogB = player(segundoJNome, sboard_B, aboard_B)
-                            break
-                        else:
-                            print('Os jogadores devem ter nomes diferentes.')
-                       
-                # first player ships positioning
+            
+            # second player ships positioning
+            if not vsComputador:
+                mensagem_grande("Barcos do primeiro jogador colocados")
                 for ship in range(5):
                     while not possible_position:
-                        sboard_A.show()
-                        b = jogA.ships[ship]
-                        b['A'] = valid_pos_input( input( f'{jogA.nome}, onde gostaria de colocar \
+                        sboard_B.show()
+                        b = jogB.ships[ship]
+                        b['A'] = valid_pos_input(input(f'{jogB.nome}, onde gostaria de colocar\
 o seu {b['nome']} ({b['squares']} quadrados)? Escreva uma das suas posições finais como "A1"\n').lower())
-                        place(b, sboard_A)
+                        place(jogB.ships[ship], sboard_B)
                     possible_position = False
-                
-                # second player ships positioning
-                if not vsComputador:
-                    mensagem_grande("Barcos do primeiro jogador colocados")
-                    for ship in range(5):
-                        while not possible_position:
-                            sboard_B.show()
-                            b = jogB.ships[ship]
-                            b['A'] = valid_pos_input(input(f'{jogB.nome}, onde gostaria de colocar\
-o seu {b['nome']} ({b['squares']} quadrados)? Escreva uma das suas posições finais como "A1"\n').lower())
-                            place(jogB.ships[ship], sboard_B)
-                        possible_position = False
-                                    
-                mensagem_grande("Todos os barcos colocados")
-            
-            mensagem_grande('')
+                                
+            mensagem_grande("Todos os barcos colocados")
+        
+        mensagem_grande('')
 
         while jogA.shipsquares() > 0 and jogB.shipsquares() > 0:
             for jogador in [jogA, jogB]:
@@ -484,7 +461,9 @@ o seu {b['nome']} ({b['squares']} quadrados)? Escreva uma das suas posições fi
             save_dict['jog A']['attackboard'] = save_dict['jog A']['attackboard'].rows
             save_dict['jog B']['attackboard'] = save_dict['jog B']['attackboard'].rows
             
-            
+            if not vsComputador:
+                savename = "saves/save_jogoBatalhaNaval_JcJ.json"
+                
             with open(savename, "w") as json_save:
                 json.dump(save_dict, json_save)
 

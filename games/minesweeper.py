@@ -1,8 +1,8 @@
 import random, json
 
-def jogoCampoMinado(largura = 14, comprimento = 12):
-    savename = 'saves/save_jogoMinas.json'
+savename = 'saves/save_jogoMinas.json'
 
+def jogoCampoMinado(DIMENS = (7, 6), resume = None):
     def mostrarCampo(testing = False):
         print('   ',end='  ')
         if testing:
@@ -121,121 +121,113 @@ def jogoCampoMinado(largura = 14, comprimento = 12):
 
 
     try:
-        novojogo = False
-        try:
-            with open(savename,'x') as jsonfile:
-                jsonfile.write('{}')
-            novojogo = True
+        if resume is not None: # Saved game will be resumed
+            data = resume
 
-        except FileExistsError:
-            with open(savename) as jsonGuardado:
-                data = json.load(jsonGuardado)
-                if len(data) > 0:
-                    if input('Escreva "S" se pretende continuar o jogo anterior ou enter para iniciar um novo.\n').lower() == 's':
-                        DIMENS = data['DIMENS']
-                        campo = data['campo']
-                        campo_ecra = data['campo_ecra']
-                        abc = data['abc']
+            DIMENS = data['DIMENS']
+            campo = data['campo']
+            campo_ecra = data['campo_ecra']
+            vazios = data['vazios']
+            for vazio in vazios:
+                # Convert all saved coordinates back to tuples
+                vazio['coords'] = [tuple(xy) for xy in vazio['coords']]
+                vazio['limites'] = [tuple(xy) for xy in vazio['limites']]
+            abc = data['abc']
+
+        else:
+            campo, campo_ecra = [], []
+            for linha in range( DIMENS[1]):
+                campo.append([0] * DIMENS[0])
+                campo_ecra.append([' '] * DIMENS[0])
+            
+            abcz = 'abcdefghijklmnopqrstuvwxyz'
+            abc = ''
+            for coluna in range( DIMENS[0]):
+                abc += abcz[coluna]
+
+            # colocação de minas em 27% do campo
+            for mina in range(int(DIMENS[0] * DIMENS[1] * 0.27)):
+                colocada = False
+                while not colocada:
+                    pos = {'Y': random.randrange(DIMENS[1]),
+                            'X': random.randrange(DIMENS[0])}
+                    if campo[pos['Y']][pos['X']] == 0:
+                        campo[pos['Y']][pos['X']] = '*'
+                        colocada = True
+
+            # verificação de quantidade de minas adjacentes em cada quadrado
+            for linha in range(DIMENS[1]):
+                for quadrado in range(DIMENS[0]):
+                    if campo[linha][quadrado] != '*':
+                        continue
+                    for adj in adjacentes(linha, quadrado):
+                        try:
+                            if adj['X'] < 0 or adj['Y'] < 0:
+                                raise IndexError
+                            if campo[adj['Y']][adj['X']] != '*':
+                                campo[adj['Y']][adj['X']] += 1
+                        except IndexError:
+                            pass
+
+            # verificação de espaços vazios (guardados numa lista de dicionários)
+            vazios = []
+            for linha in range(DIMENS[1]):
+                for quadrado in range(DIMENS[0]):
+                    if campo[linha][quadrado] != 0:
+                        continue
+                    for vazio in vazios:
+                        if (linha, quadrado) in vazio['coords']:
+                            jaNumVazio = True
+                            break
                     else:
-                        novojogo = True
-                else:
-                    novojogo = True
-        finally:          
-            if novojogo:
-                DIMENS = (largura, comprimento)
-                campo, campo_ecra = [], []
-                for linha in range( DIMENS[1]):
-                    campo.append([0] * DIMENS[0])
-                    campo_ecra.append([' '] * DIMENS[0])
-                
-                abcz = 'abcdefghijklmnopqrstuvwxyz'
-                abc = ''
-                for coluna in range( DIMENS[0]):
-                    abc += abcz[coluna]
+                        jaNumVazio = False
+                    if jaNumVazio: continue
 
-                # colocação de minas em 27% do campo
-                for mina in range(int(DIMENS[0] * DIMENS[1] * 0.27)):
-                    colocada = False
-                    while not colocada:
-                        pos = {'Y': random.randrange(DIMENS[1]),
-                               'X': random.randrange(DIMENS[0])}
-                        if campo[pos['Y']][pos['X']] == 0:
-                            campo[pos['Y']][pos['X']] = '*'
-                            colocada = True
+                    vazios.append({
+                        'coords':   [(linha, quadrado)],
+                        'limites':  [],
+                        'fechado':  False
+                    })
+                    ver_adj = [(linha, quadrado)]
+                    # itertest = 0
+                    while vazios[-1]['fechado'] == False and len(ver_adj) > 0:
+                        seguinte = ver_adj.pop(0)
+                        y = seguinte[0]
+                        x = seguinte[1]
 
-                # verificação de quantidade de minas adjacentes em cada quadrado
-                for linha in range(DIMENS[1]):
-                    for quadrado in range(DIMENS[0]):
-                        if campo[linha][quadrado] != '*':
-                            continue
-                        for adj in adjacentes(linha, quadrado):
+                        faltafechar = 8
+                        for adj in adjacentes(y, x):
                             try:
-                                if adj['X'] < 0 or adj['Y'] < 0:
+                                if ((adj['Y'], adj['X']) in vazios[-1]['coords']
+                                or (adj['Y'], adj['X']) in vazios[-1]['limites']
+                                or (adj['X'] < 0 or adj['Y'] < 0)):
+                                    faltafechar -= 1
+                                    if faltafechar == 0 and len(ver_adj) == 0:
+                                        vazios[-1]['fechado'] = True
+                                        break
                                     raise IndexError
-                                if campo[adj['Y']][adj['X']] != '*':
-                                    campo[adj['Y']][adj['X']] += 1
+                                
+                                if campo[adj['Y']][adj['X']] == 0:
+                                    ver_adj.append( (adj['Y'], adj['X']))
+                                    vazios[-1]['coords'].append( ver_adj[-1])
+                                else:
+                                    vazios[-1]['limites'].append( (adj['Y'], adj['X']))
+                                    faltafechar -= 1
+                                    if faltafechar == 0 and len(ver_adj) == 0:
+                                        vazios[-1]['fechado'] = True
+                                        break
                             except IndexError:
                                 pass
-
-                # verificação de espaços vazios (guardados numa lista de dicionários)
-                vazios = []
-                for linha in range(DIMENS[1]):
-                    for quadrado in range(DIMENS[0]):
-                        if campo[linha][quadrado] != 0:
-                            continue
-                        for vazio in vazios:
-                            if (linha, quadrado) in vazio['coords']:
-                                jaNumVazio = True
-                                break
-                        else:
-                            jaNumVazio = False
-                        if jaNumVazio: continue
-
-                        vazios.append({
-                            'coords':   [(linha, quadrado)],
-                            'limites':  [],
-                            'fechado':  False
-                        })
-                        ver_adj = [(linha, quadrado)]
-                        # itertest = 0
-                        while vazios[-1]['fechado'] == False and len(ver_adj) > 0:
-                            seguinte = ver_adj.pop(0)
-                            y = seguinte[0]
-                            x = seguinte[1]
-
-                            faltafechar = 8
-                            for adj in adjacentes(y, x):
-                                try:
-                                    if ((adj['Y'], adj['X']) in vazios[-1]['coords']
-                                    or (adj['Y'], adj['X']) in vazios[-1]['limites']
-                                    or (adj['X'] < 0 or adj['Y'] < 0)):
-                                        faltafechar -= 1
-                                        if faltafechar == 0 and len(ver_adj) == 0:
-                                            vazios[-1]['fechado'] = True
-                                            break
-                                        raise IndexError
-                                    
-                                    if campo[adj['Y']][adj['X']] == 0:
-                                        ver_adj.append( (adj['Y'], adj['X']))
-                                        vazios[-1]['coords'].append( ver_adj[-1])
-                                    else:
-                                        vazios[-1]['limites'].append( (adj['Y'], adj['X']))
-                                        faltafechar -= 1
-                                        if faltafechar == 0 and len(ver_adj) == 0:
-                                            vazios[-1]['fechado'] = True
-                                            break
-                                except IndexError:
-                                    pass
-                            
-                            # if itertest%3 == 0:
-                            #     mostrarCampo(True)
-                            # itertest += 1
-                            # print(f'{itertest} iter')
-                            # print(f"coords: {vazios[-1]['coords']}", \
-                            #       f"limites: {vazios[-1]['limites']}", \
-                            #       f'falta ver: {ver_adj}', \
-                            #       f"fechado: {vazios[-1]['fechado']}", sep='\n')
-            resultado = '?'
+                        
+                        # if itertest%3 == 0:
+                        #     mostrarCampo(True)
+                        # itertest += 1
+                        # print(f'{itertest} iter')
+                        # print(f"coords: {vazios[-1]['coords']}", \
+                        #       f"limites: {vazios[-1]['limites']}", \
+                        #       f'falta ver: {ver_adj}', \
+                        #       f"fechado: {vazios[-1]['fechado']}", sep='\n')
+        resultado = '?'
 
         ## Para testar (ganhar automaticamente):
         # poss = []
@@ -266,7 +258,8 @@ def jogoCampoMinado(largura = 14, comprimento = 12):
                 "DIMENS": DIMENS,
                 "campo": campo,
                 "campo_ecra": campo_ecra,
-                "abc": abc       
+                "vazios": vazios,
+                "abc": abc
             }
             with open(savename, "w") as json_save:
                 json.dump(save_dict, json_save)
@@ -275,4 +268,4 @@ def jogoCampoMinado(largura = 14, comprimento = 12):
 
 
 if __name__ == "__main__":
-    jogoCampoMinado(8,6)
+    jogoCampoMinado((8,6))

@@ -1,8 +1,8 @@
 import time, random, json
 
-def jogoGloria():
-    savename = 'saves/save_jogoGloria.json'
+savename = 'saves/save_jogoGloria.json'
 
+def jogoGloria(resume = None):
     class Jogador:
         def __init__(self, nome):
             self.id = nome
@@ -80,74 +80,65 @@ def jogoGloria():
     try:
         novojogo = False
         jogadores = []
-        try:
-            with open(savename,'x') as jsonfile:
-                jsonfile.write('{}')
+        if resume is not None: # Saved game will be resumed
+            data = resume
+
+            percurso = data['percurso']
+            for jogador in data['jogadores']:
+                jogadores.append(Jogador(jogador['id']))
+                jogadores[-1].casa = jogador['casa']
+                jogadores[-1].espera = jogador['espera']
+            vezde = data['vez de']
+        
+        else:
             novojogo = True
 
-        except FileExistsError:
-            with open(savename) as jsonGuardado:
-                data = json.load(jsonGuardado)
-                if len(data) > 0:
-                    if input('Escreva "S" se pretende continuar o jogo anterior ou enter para iniciar um novo.\n').lower() == 's':
-                        percurso = data['percurso']
-                        for jogador in data['jogadores']:
-                            jogadores.append(Jogador(jogador['id']))
-                            jogadores[-1].casa = jogador['casa']
-                            jogadores[-1].espera = jogador['espera']
-                        vezde = data['vez de']
+            percurso = [i + 1 for i in range(50)]
+            pessoas = 0
+            while pessoas <= 1:
+                pessoas = int(input('Número de jogadores (2-6): '))
+            nomes = set()
+            for jogador in range(pessoas):
+                if jogador == 6:
+                    break
+                while True:
+                    nome = input(f'Nome do jogador {jogador + 1}: ')
+                    nomes.add(nome)
+                    if len(nomes) < (jogador + 1):
+                        print('Já há um jogador com esse nome, escolha outro.')
                     else:
-                        novojogo = True
-                else:
-                    novojogo = True
-        finally:          
-            if novojogo:
-                percurso = [i + 1 for i in range(50)]
-                pessoas = 0
-                while pessoas <= 1:
-                    pessoas = int(input('Número de jogadores (2-6): '))
-                nomes = set()
-                for jogador in range(pessoas):
-                    if jogador == 6:
+                        jogadores.append(Jogador(nome))
                         break
-                    while True:
-                        nome = input(f'Nome do jogador {jogador + 1}: ')
-                        nomes.add(nome)
-                        if len(nomes) < (jogador + 1):
-                            print('Já há um jogador com esse nome, escolha outro.')
-                        else:
-                            jogadores.append(Jogador(nome))
-                            break
 
-            casas_especiais = {
-                1:'Partida',
-                3:'Avança 3 casas',
-                5:'Recua até a partida',
-                8:'Avança 3 casas',
-                16:'Fica 1 vez sem jogar',
-                22:'Avança 2 casas',
-                27:'Junta-te ao seguinte jogador',
-                31:'Avança 1 casa',
-                35:'Fica 2 vezes sem jogar',
-                38:'Avança 4 casas',
-                44:'Recua 1 casa',
-                49:'Recua 3 casas',
-                50:'CHEGADA'
-            }
+        casas_especiais = {
+            1:'Partida',
+            3:'Avança 3 casas',
+            5:'Recua até a partida',
+            8:'Avança 3 casas',
+            16:'Fica 1 vez sem jogar',
+            22:'Avança 2 casas',
+            27:'Junta-te ao seguinte jogador',
+            31:'Avança 1 casa',
+            35:'Fica 2 vezes sem jogar',
+            38:'Avança 4 casas',
+            44:'Recua 1 casa',
+            49:'Recua 3 casas',
+            50:'CHEGADA'
+        }
                         
         acabou = False
         while not acabou:
             for jog in jogadores:
-                if jog.espera > 0:
-                    jog.espera -= 1
-                    continue
-
-                elif not novojogo:
+                if not novojogo:
                     if jog.id == vezde:
                         novojogo = True
                     else:
                         continue
 
+                elif jog.espera > 0:
+                    jog.espera -= 1
+                    continue
+                
                 else:
                     vezde = jog.id
 

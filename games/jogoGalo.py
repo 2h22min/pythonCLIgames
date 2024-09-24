@@ -5,35 +5,23 @@ em linha) (https://pt.wikipedia.org/wiki/Jogo_da_velha).
 
 import json
 
-def jogoGalo():
-    savename = 'saves/save_jogoGalo.json'
-    
-    try:
-        novojogo = False
-        try:
-            with open(savename,'x') as jsonfile:
-                jsonfile.write('{}')
-            novojogo = True
+savename = 'saves/save_jogoGalo.json'
 
-        except FileExistsError:
-            with open(savename) as jsonGuardado:
-                data = json.load(jsonGuardado)
-                if len(data) > 0:
-                    if input('Escreva "S" se pretende continuar o jogo anterior ou enter para iniciar um novo.\n').lower() == 's':
-                        jogador1 = data['jogadores'][0]
-                        jogador2 = data['jogadores'][1]
-                        tabela = data['tabela']
-                    else:
-                        novojogo = True
-                else:
-                    novojogo = True
-        finally:          
-            if novojogo:
-                jogador1 = input('Nome 1: ')
-                jogador2 = input('Nome 2: ')
-                tabela = [9, [' ', ' ', ' '], [' ', ' ', ' '], [' ', ' ', ' ']]
-            
-            ganhou = ''
+def jogoGalo(resume = None):    
+    try:
+        if resume is not None: # Saved game will be resumed
+            data = resume
+
+            jogador1 = data['jogadores'][0]
+            jogador2 = data['jogadores'][1]
+            tabela = data['tabela']
+
+        else:
+            jogador1 = input('Nome 1: ')
+            jogador2 = input('Nome 2: ')
+            tabela = [9, [' ', ' ', ' '], [' ', ' ', ' '], [' ', ' ', ' ']]
+        
+        ganhou = ''
 
         while tabela[0] >= 0:
             for row in range(len(tabela)):
@@ -52,6 +40,7 @@ def jogoGalo():
             else:
                 simb = 'X'
                 aJogar = jogador2
+
             pos = input(f'{aJogar} ({simb}), insira posição na forma "B2": ').lower()
             while True:
                 try:

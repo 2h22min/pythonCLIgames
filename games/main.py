@@ -20,37 +20,92 @@ jogos” ou se pretende continuar uma que tenha guardado.
 """
 
 import json
-from jogoGalo import jogoGalo
-from jogo4linha import jogo4linha
-from jogoGloria import jogoGloria
-from jogoForca import jogoForca
-from minesweeper import jogoCampoMinado
-from battleship import jogoBatalhaNaval
+import jogoGalo
+import jogo4linha
+import jogoGloria
+import jogoForca
+import minesweeper
+import battleship 
 
 
 abc = 'abcdefghijklmnopqrstuvwxyz'
 jogos = [ {'nome': 'Jogo do galo',
-          'func': jogoGalo},
+          'vsPC': False,
+          'func': jogoGalo.jogoGalo},
           {'nome': 'Jogo 4 em linha',
-          'func': jogo4linha},
+          'vsPC': False,
+          'func': jogo4linha.jogo4linha},
           {'nome': 'Jogo da gloria',
-          'func': jogoGloria},
+          'vsPC': False,
+          'func': jogoGloria.jogoGloria},
           {'nome': 'Jogo da forca',
-          'func': jogoForca},
+          'vsPC': False,
+          'func': jogoForca.jogoForca},
           {'nome': 'Jogo campo de minas',
-          'func': jogoCampoMinado},
+          'vsPC': False,
+          'func': minesweeper.jogoCampoMinado},
           {'nome': 'Jogo batalha naval',
-          'func': jogoBatalhaNaval},
+          'vsPC': True,
+          'func': battleship.jogoBatalhaNaval},
           ]
+for module, i in zip(
+        [jogoGalo, jogo4linha, jogoGloria, jogoForca, minesweeper, battleship],
+    range(len(jogos)), strict=True):
+    jogos[i]['savename'] = module.savename
 
 while True:
-    print('\nSelecione jogo:')
-    for jogo in range(len(jogos)):
-        print(abc[jogo] + '.', jogos[jogo]['nome'])
-    print('Use as teclas "Control" + "C" para sair em qualquer momento.')
     try:
-        i = abc.index(input().lower())
-        jogos[i]['func']()
-    except (ValueError, IndexError, KeyboardInterrupt):
+        print('\nSelecione jogo:')
+        for jogo in range(len(jogos)):
+            print(abc[jogo] + '.', jogos[jogo]['nome'])
+        print('Use "Control + C" para sair em qualquer momento.')
+
+        try:
+            i = abc.index(input().lower())
+            if i >= len(jogos):
+                raise ValueError
+        # Continue while loop, until a valid option is selected
+        except ValueError:
+            continue
+
+        # If it's a game playable against computer, select the mode
+        vsPC = None
+        if jogos[i]['vsPC']:
+            print('Escolha modo de jogo:')
+            while True:
+                match input(' a. Jogador vs Computador\n b. Jogador vs Jogador\n').lower():
+                    case 'a':
+                        vsPC = True
+                        jogos[i]['savename'] = jogos[i]['savename'][:-6] + "C.json"
+                        break
+                    case 'b':
+                        vsPC = False
+                        # Update savename in dict because default is vs. PC mode
+                        jogos[i]['savename'] = jogos[i]['savename'][:-6] + "J.json"
+                        break
+
+        # Check if there's a save of the selected game before starting
+        data = None
+        try:
+            with open(jogos[i]['savename'],'x') as jsonfile:
+                jsonfile.write('{}')
+
+        except FileExistsError:
+            with open(jogos[i]['savename']) as jsonGuardado:
+                data = json.load(jsonGuardado)
+
+            if len(data) > 0:
+                if input('Escreva "S" se pretende continuar o jogo anterior ou enter para iniciar um novo.\n'
+                        ).lower() != 's':
+                    data = None
+            else:
+                    data = None
+                    
+        finally:
+            if vsPC is not None:
+                jogos[i]['func'](vsPC, resume = data)
+            else:
+                jogos[i]['func'](resume = data)
+
+    except KeyboardInterrupt:
         break
-    
